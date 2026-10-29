@@ -1,0 +1,2 @@
+# CPU Scheduling Simulator Dependencies
+Flask>=3.0.0

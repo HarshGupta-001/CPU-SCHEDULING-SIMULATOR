@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPU Scheduling Mini Project | Queue & Priority Queue</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col p-4 sm:p-8">
+
+  <!-- Header -->
+  <header class="max-w-5xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between pb-6 border-b border-slate-800 gap-4">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+        <span class="p-1.5 rounded-lg bg-indigo-600 text-white text-base">⚡</span>
+        CPU Scheduling Mini Project
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">Demonstrating <strong>Queue</strong> and <strong>Priority Queue</strong> in Operating Systems</p>
+    </div>
+
+    <!-- Download Project ZIP -->
+    <a href="/api/download-project" download="cpu-scheduling-simulator.zip" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs text-white shadow-md flex items-center gap-2 transition">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Download Project ZIP
+    </a>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-5xl w-full mx-auto space-y-6 pt-6 flex-1">
+
+    <!-- 1. Algorithm Mode Selector & Process Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5">
+      
+      <!-- DSA Mode Switcher -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Select Scheduling Mode</label>
+        <div class="grid grid-cols-2 gap-3 max-w-md">
+          <button id="btnModeQueue" class="mode-btn py-2.5 px-4 rounded-xl text-xs font-bold border border-indigo-500 bg-indigo-600/20 text-indigo-300 flex items-center justify-center gap-2" data-mode="queue">
+            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+            1. Queue (FIFO)
+          </button>
+          <button id="btnModePriority" class="mode-btn py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-400 flex items-center justify-center gap-2" data-mode="priority_queue">
+            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+            2. Priority Queue
+          </button>
+        </div>
+      </div>
+
+      <!-- Process Table -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Process Table</label>
+          <div class="flex items-center gap-2">
+            <button id="btnReset" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800">Reset Default</button>
+            <button id="btnAddRow" class="text-xs font-bold text-indigo-300 hover:text-white px-3 py-1 rounded bg-indigo-600/30">+ Add Process</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-800 rounded-xl">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[11px]">
+              <tr>
+                <th class="py-2.5 px-4">PID</th>
+                <th class="py-2.5 px-4 text-center">Arrival Time</th>
+                <th class="py-2.5 px-4 text-center">Burst Time</th>
+                <th class="py-2.5 px-4 text-center">Priority</th>
+                <th class="py-2.5 px-3 text-right"></th>
+              </tr>
+            </thead>
+            <tbody id="processRows" class="divide-y divide-slate-800 font-mono">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+        <p class="text-[11px] text-slate-500 italic">* Priority rule: Lower number = Higher priority (e.g. Priority 1 runs before Priority 3).</p>
+      </div>
+
+      <!-- Run Action Button -->
+      <button id="btnRun" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition">
+        ▶ Run Scheduling
+      </button>
+
+    </div>
+
+    <!-- 2. Gantt Chart Visualization -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+          <span>📊</span> Gantt Chart Timeline
+        </h2>
+        <span id="makespanBadge" class="text-xs font-mono text-slate-400">Total Time: 0</span>
+      </div>
+
+      <!-- Gantt Blocks Container -->
+      <div id="ganttContainer" class="w-full flex items-center h-12 bg-slate-950 rounded-xl p-1 overflow-x-auto gap-0.5 border border-slate-800">
+        <!-- Rendered blocks -->
+      </div>
+
+      <!-- Timeline Ticks -->
+      <div id="timelineTicks" class="flex justify-between text-[11px] font-mono text-slate-500 px-1">
+        <span>0</span>
+      </div>
+    </div>
+
+    <!-- 3. Data Structure State Inspection -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+        <span>🧠</span> Ready Queue Data Structure State
+      </h2>
+      <div id="dsaDisplay" class="p-4 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono">
+        <!-- Live DS content -->
+      </div>
+    </div>
+
+    <!-- 4. Performance Summary & Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-indigo-400">
+          Performance Results
+        </h2>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-2 gap-4 text-center">
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+          <div class="text-[11px] text-slate-400 uppercase font-semibold">Average Turnaround Time (TAT)</div>
+          <div id="kpiAvgTAT" class="text-2xl font-bold font-mono text-blue-400 mt-1">--</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">TAT = Completion - Arrival</div>
+        </div>
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+          <div class="text-[11px] text-slate-400 uppercase font-semibold">Average Waiting Time (WT)</div>
+          <div id="kpiAvgWT" class="text-2xl font-bold font-mono text-rose-400 mt-1">--</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">WT = Turnaround - Burst</div>
+        </div>
+      </div>
+
+      <!-- Process Result Table -->
+      <div class="overflow-x-auto border border-slate-800 rounded-xl">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[11px]">
+            <tr>
+              <th class="py-2.5 px-4">PID</th>
+              <th class="py-2.5 px-4">Arrival</th>
+              <th class="py-2.5 px-4">Burst</th>
+              <th class="py-2.5 px-4">Priority</th>
+              <th class="py-2.5 px-4">Completion (CT)</th>
+              <th class="py-2.5 px-4 text-blue-400">Turnaround (TAT)</th>
+              <th class="py-2.5 px-4 text-rose-400">Waiting (WT)</th>
+            </tr>
+          </thead>
+          <tbody id="resultRows" class="divide-y divide-slate-800 font-mono">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-5xl w-full mx-auto text-center text-xs text-slate-500 py-6 border-t border-slate-800/60 mt-8">
+    CPU Scheduling Mini Project • Queue & Priority Queue
+  </footer>
+
+  <!-- Self-contained JavaScript -->
+  <script>
+    let currentMode = "queue";
+    let processes = [
+      { pid: "P1", arrival_time: 0, burst_time: 4, priority: 3, color: "#3b82f6" },
+      { pid: "P2", arrival_time: 1, burst_time: 3, priority: 1, color: "#10b981" },
+      { pid: "P3", arrival_time: 2, burst_time: 1, priority: 4, color: "#f59e0b" },
+      { pid: "P4", arrival_time: 3, burst_time: 2, priority: 2, color: "#ec4899" }
+    ];
+
+    const PALETTE = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4"];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderProcessInputTable();
+      initEvents();
+      runSimulation();
+    });
+
+    function initEvents() {
+      // Mode Selector buttons
+      document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".mode-btn").forEach(b => {
+            b.classList.remove("border-indigo-500", "bg-indigo-600/20", "text-indigo-300");
+            b.classList.add("border-slate-700", "bg-slate-800", "text-slate-400");
+          });
+          btn.classList.add("border-indigo-500", "bg-indigo-600/20", "text-indigo-300");
+          btn.classList.remove("border-slate-700", "bg-slate-800", "text-slate-400");
+          currentMode = btn.getAttribute("data-mode");
+          runSimulation();
+        });
+      });
+
+      document.getElementById("btnRun").addEventListener("click", runSimulation);
+
+      document.getElementById("btnAddRow").addEventListener("click", () => {
+        const nextNum = processes.length + 1;
+        processes.push({
+          pid: `P${nextNum}`,
+          arrival_time: 0,
+          burst_time: 3,
+          priority: 2,
+          color: PALETTE[processes.length % PALETTE.length]
+        });
+        renderProcessInputTable();
+      });
+
+      document.getElementById("btnReset").addEventListener("click", () => {
+        processes = [
+          { pid: "P1", arrival_time: 0, burst_time: 4, priority: 3, color: "#3b82f6" },
+          { pid: "P2", arrival_time: 1, burst_time: 3, priority: 1, color: "#10b981" },
+          { pid: "P3", arrival_time: 2, burst_time: 1, priority: 4, color: "#f59e0b" },
+          { pid: "P4", arrival_time: 3, burst_time: 2, priority: 2, color: "#ec4899" }
+        ];
+        renderProcessInputTable();
+        runSimulation();
+      });
+    }
+
+    function renderProcessInputTable() {
+      const tbody = document.getElementById("processRows");
+      tbody.innerHTML = processes.map((p, idx) => `
+        <tr class="hover:bg-slate-800/40">
+          <td class="py-2 px-4 flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full" style="background-color: ${p.color}"></span>
+            <input type="text" value="${p.pid}" onchange="processes[${idx}].pid=this.value" class="w-14 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white font-bold text-center">
+          </td>
+          <td class="py-2 px-4 text-center">
+            <input type="number" min="0" value="${p.arrival_time}" onchange="processes[${idx}].arrival_time=parseInt(this.value,10)" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center text-slate-200">
+          </td>
+          <td class="py-2 px-4 text-center">
+            <input type="number" min="1" value="${p.burst_time}" onchange="processes[${idx}].burst_time=parseInt(this.value,10)" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center text-slate-200">
+          </td>
+          <td class="py-2 px-4 text-center">
+            <input type="number" min="1" value="${p.priority}" onchange="processes[${idx}].priority=parseInt(this.value,10)" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center text-amber-400">
+          </td>
+          <td class="py-2 px-3 text-right">
+            <button onclick="removeRow(${idx})" class="text-rose-400 hover:text-rose-300 font-bold px-1.5">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function removeRow(idx) {
+      if (processes.length > 1) {
+        processes.splice(idx, 1);
+        renderProcessInputTable();
+      } else {
+        alert("At least one process is required.");
+      }
+    }
+
+    async function runSimulation() {
+      try {
+        const res = await fetch("/api/simulate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: currentMode, processes: processes })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Simulation error");
+
+        renderGantt(data.gantt_chart, data.total_time);
+        renderDSAState(data.dsa_type, data.dsa_states);
+        renderResults(data);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function renderGantt(blocks, totalTime) {
+      const container = document.getElementById("ganttContainer");
+      const ticks = document.getElementById("timelineTicks");
+      const badge = document.getElementById("makespanBadge");
+
+      badge.textContent = `Total Time: ${totalTime} Ticks`;
+
+      if (!blocks || blocks.length === 0) {
+        container.innerHTML = '<span class="text-slate-500 text-xs mx-auto">No execution data</span>';
+        return;
+      }
+
+      container.innerHTML = blocks.map(b => {
+        const pct = Math.max(8, (b.duration / totalTime) * 100);
+        return `
+          <div style="width: ${pct}%; background-color: ${b.color};" class="h-full rounded-md flex items-center justify-center font-mono font-bold text-xs text-white shadow-sm border border-slate-900 overflow-hidden" title="${b.pid}: ${b.start} -> ${b.end}">
+            ${b.pid}
+          </div>
+        `;
+      }).join('');
+
+      // Render timeline ticks
+      ticks.innerHTML = `
+        <span>0</span>
+        ${blocks.map(b => `<span>${b.end}</span>`).join('')}
+      `;
+    }
+
+    function renderDSAState(dsaType, states) {
+      const el = document.getElementById("dsaDisplay");
+      if (!states || states.length === 0) {
+        el.innerHTML = '<span class="text-slate-500 italic">No states available.</span>';
+        return;
+      }
+
+      const isPQ = dsaType.includes("Priority");
+      el.innerHTML = `
+        <div class="space-y-2">
+          <div class="text-slate-400 font-sans">
+            Data Structure: <strong class="text-white">${dsaType}</strong>
+            <span class="text-slate-500 text-[11px] block mt-0.5">${isPQ ? 'Elements sorted by priority (lowest number popped first).' : 'First-In, First-Out: Elements dequeued from front.'}</span>
+          </div>
+          <div class="border-t border-slate-800 pt-2 space-y-1">
+            ${states.map(s => `
+              <div class="flex items-center gap-2">
+                <span class="text-indigo-400">[T=${s.time}]</span>
+                <span class="text-slate-300">Dispatched: <strong class="text-white">${s.dispatched}</strong></span>
+                <span class="text-slate-500">➔ Remaining: [ ${s.queue.length > 0 ? s.queue.join(', ') : 'empty'} ]</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderResults(data) {
+      document.getElementById("kpiAvgTAT").textContent = `${data.avg_tat} ms`;
+      document.getElementById("kpiAvgWT").textContent = `${data.avg_wt} ms`;
+
+      const tbody = document.getElementById("resultRows");
+      tbody.innerHTML = data.processes.map(p => `
+        <tr class="hover:bg-slate-800/30">
+          <td class="py-2.5 px-4 font-bold text-white flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${p.color}"></span>
+            ${p.pid}
+          </td>
+          <td class="py-2.5 px-4 text-slate-300">${p.arrival_time}</td>
+          <td class="py-2.5 px-4 text-slate-300">${p.burst_time}</td>
+          <td class="py-2.5 px-4 text-amber-400 font-bold">${p.priority}</td>
+          <td class="py-2.5 px-4 text-slate-300">${p.completion_time}</td>
+          <td class="py-2.5 px-4 text-blue-400 font-semibold">${p.turnaround_time}</td>
+          <td class="py-2.5 px-4 text-rose-400 font-semibold">${p.waiting_time}</td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
